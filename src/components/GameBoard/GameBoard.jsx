@@ -9,6 +9,7 @@ import PlayerStatusBar from './PlayerStatusBar.jsx';
 import ThresholdWarning from '../UI/ThresholdWarning.jsx';
 import Button from '../UI/Button.jsx';
 import Modal from '../UI/Modal.jsx';
+import DiscardPicker from './DiscardPicker.jsx';
 
 const HELP_SECTIONS = [
   {
@@ -43,6 +44,7 @@ export default function GameBoard() {
     currentEventCard, gameLog, selectedCard, selectedTarget,
     playCard, endTurn, selectCard, selectTarget, clearSelection,
     restartGame, forceEndGame,
+    pendingSpecialAction, resolveRecyclePick, cancelSpecialAction,
   } = useGameStore();
 
   const [showLog, setShowLog] = useState(false);
@@ -317,6 +319,18 @@ export default function GameBoard() {
           🏁
         </Button>
       </div>
+
+      {/* Discard Picker — shown when human plays a recycle card */}
+      <AnimatePresence>
+        {pendingSpecialAction?.type === 'recycle_pick' && humanPlayer && (
+          <DiscardPicker
+            discard={humanPlayer.discardPile}
+            count={pendingSpecialAction.count}
+            onConfirm={resolveRecyclePick}
+            onCancel={cancelSpecialAction}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Help modal */}
       <Modal isOpen={showHelp} onClose={() => setShowHelp(false)} title="❓ מדריך משחק">
