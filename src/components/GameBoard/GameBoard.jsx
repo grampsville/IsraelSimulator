@@ -41,7 +41,7 @@ export default function GameBoard() {
   const {
     players, currentPlayerIndex, round, maxRounds, actionPoints,
     currentEventCard, gameLog, selectedCard, selectedTarget,
-    playCard, endTurn, drawCardsAction, selectCard, selectTarget, clearSelection,
+    playCard, endTurn, selectCard, selectTarget, clearSelection,
     restartGame, forceEndGame,
   } = useGameStore();
 
@@ -292,26 +292,22 @@ export default function GameBoard() {
 
       {/* Action buttons */}
       <div
-        className="flex gap-2 px-3 pb-4 flex-shrink-0"
+        className="flex gap-2 px-3 pb-3 flex-shrink-0"
         style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
       >
-        <Button
-          onClick={drawCardsAction}
-          variant="ghost"
-          size="sm"
-          className="flex-1"
-          disabled={humanPlayer?.hand.length >= 5 || actionPoints <= 0}
-        >
-          🃏 משוך קלף
-        </Button>
-        <Button
-          onClick={endTurn}
-          variant="primary"
-          size="sm"
-          className="flex-1"
-        >
-          סיים תור →
-        </Button>
+        <div className="flex-1 flex flex-col gap-1">
+          <Button
+            onClick={endTurn}
+            variant="primary"
+            size="sm"
+            className="w-full"
+          >
+            סיים תור →
+          </Button>
+          <div className="text-center text-xs text-gray-600">
+            🃏 קלף יימשך אוטומטית
+          </div>
+        </div>
         <Button
           onClick={forceEndGame}
           variant="danger"
