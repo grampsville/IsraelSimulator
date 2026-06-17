@@ -36,7 +36,7 @@ export default function MandateTracker({ players }) {
               className="text-xs font-bold truncate w-20"
               style={{ color: isEliminated ? '#444' : player.leader.color }}
             >
-              {player.leader.name.split(' ')[0]}
+              {player.leader.nickname || player.leader.name.split(' ')[0]}
             </span>
 
             {/* Bar */}

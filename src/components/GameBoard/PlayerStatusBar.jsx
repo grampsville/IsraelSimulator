@@ -27,7 +27,7 @@ export default function PlayerStatusBar({ player, isCurrentTurn }) {
     >
       <div className="text-xl">{player.isEliminated ? '💀' : player.leader.emoji}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-bold text-white truncate">{player.leader.name.split(' ')[0]}</div>
+        <div className="text-xs font-bold text-white truncate">{player.leader.nickname || player.leader.name.split(' ')[0]}</div>
         <div
           className="text-xs truncate"
           style={{ color: player.isEliminated ? '#444' : player.leader.color }}

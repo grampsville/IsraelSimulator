@@ -17,7 +17,7 @@ const rarityColors = {
   epic: '#9b59b6',
 };
 
-export default function CardBase({ card, isSelected, onClick, showBack = false, small = false }) {
+export default function CardBase({ card, isSelected, onClick, onInfo, showBack = false, small = false }) {
   const [flipped, setFlipped] = useState(showBack);
 
   const colors = typeColors[card.type] || typeColors.campaign;
@@ -25,6 +25,11 @@ export default function CardBase({ card, isSelected, onClick, showBack = false, 
 
   const handleClick = () => {
     if (onClick) onClick(card);
+  };
+
+  const handleInfo = (e) => {
+    e.stopPropagation();
+    if (onInfo) onInfo(card);
   };
 
   const width = small ? 'w-20' : 'w-28';
@@ -70,17 +75,19 @@ export default function CardBase({ card, isSelected, onClick, showBack = false, 
           </div>
         </div>
 
-        {/* Cost & rarity */}
+        {/* Cost & rarity + info button */}
         <div
           className="flex justify-between items-center px-1.5 py-0.5"
           style={{ borderTop: `1px solid ${colors.border}33` }}
         >
-          <span
-            className="text-xs font-bold px-1.5 py-0.5 rounded"
-            style={{ background: rarityColor + '33', color: rarityColor, border: `1px solid ${rarityColor}55` }}
+          <button
+            onClick={handleInfo}
+            className="text-xs font-black w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors hover:bg-white/20"
+            style={{ border: `1px solid rgba(255,255,255,0.25)`, color: 'rgba(255,255,255,0.6)' }}
+            title="פרטי קלף"
           >
-            {card.rarity === 'common' ? 'רגיל' : card.rarity === 'rare' ? 'נדיר' : 'אפי'}
-          </span>
+            ?
+          </button>
           <span
             className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: '#ffd700', color: '#000' }}
