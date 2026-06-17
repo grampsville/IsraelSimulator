@@ -1,4 +1,15 @@
 // Bot AI — returns { cardId, targetId } for a bot's turn
+import { canFormCoalition } from './gameEngine.js';
+
+// Returns only players this bot can realistically coalition with
+function compatibleAllies(bot, activePlayers) {
+  return activePlayers.filter(p =>
+    !p.isEliminated &&
+    p.id !== bot.id &&
+    !(bot.coalitionAllies || []).includes(p.id) &&
+    canFormCoalition(bot, p, false)
+  );
+}
 
 export function getBotAction(bot, gameState) {
   const { players } = gameState;
@@ -135,11 +146,11 @@ function ideologicalStrategy(bot, hand, activePlayers, gameState) {
   const ideologyCard = hand.find(c => c.id === 'ideological_purity' || c.type === 'campaign');
   if (ideologyCard) return { cardId: ideologyCard.instanceId, targetId: bot.id };
 
-  // Don't form coalitions with opposite blocs
+  // Only coalition with compatible parties
   const allyCard = hand.find(c => c.type === 'coalition');
   if (allyCard) {
-    const sameBloc = activePlayers.find(p => p.leader.bloc === bot.leader.bloc);
-    if (sameBloc) return { cardId: allyCard.instanceId, targetId: sameBloc.id };
+    const viable = compatibleAllies(bot, activePlayers);
+    if (viable.length > 0) return { cardId: allyCard.instanceId, targetId: viable[0].id };
   }
 
   // Defense if threatened
@@ -156,9 +167,8 @@ function centristStrategy(bot, hand, activePlayers, gameState) {
   // Prioritize coalition building
   const coalitionCard = findCardByType(hand, 'coalition');
   if (coalitionCard) {
-    // Find someone we're not already allied with
-    const potential = activePlayers.find(p => !(bot.coalitionAllies || []).includes(p.id));
-    if (potential) return { cardId: coalitionCard.instanceId, targetId: potential.id };
+    const viable = compatibleAllies(bot, activePlayers);
+    if (viable.length > 0) return { cardId: coalitionCard.instanceId, targetId: viable[0].id };
   }
 
   // Campaign second
@@ -177,7 +187,11 @@ function progressiveStrategy(bot, hand, activePlayers, gameState) {
   // Look for cross-bloc alliance opportunity
   const crossBlocCard = hand.find(c => c.id === 'cross_bloc_surprise' || c.id === 'peace_coalition');
   if (crossBlocCard) {
-    const crossBlocTarget = activePlayers.find(p => p.leader.bloc !== bot.leader.bloc && p.leader.bloc !== 'right');
+    const crossBlocTarget = activePlayers.find(p =>
+      p.leader.bloc !== bot.leader.bloc &&
+      p.leader.bloc !== 'right' &&
+      canFormCoalition(bot, p, true)
+    );
     if (crossBlocTarget) return { cardId: crossBlocCard.instanceId, targetId: crossBlocTarget.id };
   }
 
@@ -187,8 +201,9 @@ function progressiveStrategy(bot, hand, activePlayers, gameState) {
 
   // Coalition
   const coalitionCard = findCardByType(hand, 'coalition');
-  if (coalitionCard && activePlayers.length > 0) {
-    return { cardId: coalitionCard.instanceId, targetId: activePlayers[0].id };
+  if (coalitionCard) {
+    const viable = compatibleAllies(bot, activePlayers);
+    if (viable.length > 0) return { cardId: coalitionCard.instanceId, targetId: viable[0].id };
   }
 
   return { cardId: hand[0].instanceId, targetId: bot.id };
@@ -271,9 +286,9 @@ function honestBrokerStrategy(bot, hand, activePlayers, gameState) {
 
   // Build coalitions openly
   const coalitionCard = findCardByType(nonSecretHand, 'coalition');
-  if (coalitionCard && activePlayers.length > 0) {
-    const unallied = activePlayers.find(p => !(bot.coalitionAllies || []).includes(p.id));
-    if (unallied) return { cardId: coalitionCard.instanceId, targetId: unallied.id };
+  if (coalitionCard) {
+    const viable = compatibleAllies(bot, activePlayers);
+    if (viable.length > 0) return { cardId: coalitionCard.instanceId, targetId: viable[0].id };
   }
 
   // Campaign
@@ -297,9 +312,12 @@ function wildcardStrategy(bot, hand, activePlayers, gameState) {
   } else if (roll < 0.5) {
     // Form surprise coalition
     const coalitionCard = findCardByType(hand, 'coalition');
-    if (coalitionCard && activePlayers.length > 0) {
-      const random = activePlayers[Math.floor(Math.random() * activePlayers.length)];
-      return { cardId: coalitionCard.instanceId, targetId: random.id };
+    if (coalitionCard) {
+      const viable = compatibleAllies(bot, activePlayers);
+      if (viable.length > 0) {
+        const random = viable[Math.floor(Math.random() * viable.length)];
+        return { cardId: coalitionCard.instanceId, targetId: random.id };
+      }
     }
   } else if (roll < 0.7) {
     // Campaign
