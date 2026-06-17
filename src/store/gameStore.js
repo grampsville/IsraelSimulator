@@ -29,6 +29,7 @@ const createPlayer = (leader, isHuman = false) => ({
   upgrades: [],
   blockNextAttack: false,
   immuneRound: 0,
+  lastPlayedCard: null,
 });
 
 const drawCards = (player, count = 1) => {
@@ -70,6 +71,7 @@ export const useGameStore = create((set, get) => ({
   // UI state
   selectedCard: null,
   selectedTarget: null,
+  pendingSpecialAction: null, // { type: 'recycle_pick', count: N } when human plays a recycle card
 
   selectLeader: (id) => set({ selectedLeaderId: id }),
 
@@ -140,7 +142,7 @@ export const useGameStore = create((set, get) => ({
 
     // Check immunity
     if (targetPlayer && targetPlayer.immuneRound >= round && card.type === 'attack') {
-      set({ gameLog: [...state.gameLog, `${targetPlayer.leader.name} חסין לתקיפה!`] });
+      set({ gameLog: [...state.gameLog, `${targetPlayer.leader.nickname || targetPlayer.leader.name} חסין לתקיפה!`] });
       return;
     }
 
@@ -152,7 +154,32 @@ export const useGameStore = create((set, get) => ({
       });
       set({
         players: updatedPlayers,
-        gameLog: [...state.gameLog, `${targetPlayer.leader.name} חסם את התקיפה!`],
+        gameLog: [...state.gameLog, `${targetPlayer.leader.nickname || targetPlayer.leader.name} חסם את התקיפה!`],
+      });
+      return;
+    }
+
+    // Intercept recycle_pick for human — show picker UI instead of auto-resolving
+    const isRecyclePick = card.effect?.type === 'recycle_pick' ||
+      (card.effect?.type === 'combo' && card.effect.effects?.some(e => e.type === 'recycle_pick'));
+
+    if (isRecyclePick) {
+      // First remove card from hand, deduct AP
+      const updatedPlayers = players.map(p => {
+        if (p.id === currentPlayer.id) {
+          const newHand = p.hand.filter(c => c.instanceId !== cardInstanceId);
+          return { ...p, hand: newHand, discardPile: [...p.discardPile, card], lastPlayedCard: card };
+        }
+        return p;
+      });
+      const count = card.effect?.count || card.effect?.effects?.find(e => e.type === 'recycle_pick')?.count || 1;
+      set({
+        players: updatedPlayers,
+        actionPoints: actionPoints - card.cost,
+        pendingSpecialAction: { type: 'recycle_pick', count },
+        selectedCard: null,
+        selectedTarget: null,
+        gameLog: [...state.gameLog.slice(-20), `${currentPlayer.leader.nickname || currentPlayer.leader.name} שיחק: ${card.name}`],
       });
       return;
     }
@@ -160,13 +187,13 @@ export const useGameStore = create((set, get) => ({
     // Apply card effect
     let updatedPlayers = applyCardEffect(card, currentPlayer, targetPlayer, players);
 
-    // Remove card from hand, add to discard
+    // Remove card from hand, add to discard, track last played
     updatedPlayers = updatedPlayers.map(p => {
       if (p.id === currentPlayer.id) {
         const newHand = [...p.hand];
         const idx = newHand.findIndex(c => c.instanceId === cardInstanceId);
         if (idx !== -1) newHand.splice(idx, 1);
-        return { ...p, hand: newHand, discardPile: [...p.discardPile, card] };
+        return { ...p, hand: newHand, discardPile: [...p.discardPile, card], lastPlayedCard: card };
       }
       return p;
     });
@@ -249,11 +276,11 @@ export const useGameStore = create((set, get) => ({
               // Apply effect
               updatedPlayers = applyCardEffect(card, currentBot, targetPlayer, updatedPlayers);
 
-              // Remove card from bot hand
+              // Remove card from bot hand, track last played
               updatedPlayers = updatedPlayers.map(p => {
                 if (p.id === currentBot.id) {
                   const newHand = p.hand.filter(c => c.instanceId !== botAction.cardId);
-                  return { ...p, hand: newHand, discardPile: [...p.discardPile, card] };
+                  return { ...p, hand: newHand, discardPile: [...p.discardPile, card], lastPlayedCard: card };
                 }
                 return p;
               });
@@ -350,6 +377,23 @@ export const useGameStore = create((set, get) => ({
   selectTarget: (playerId) => set({ selectedTarget: playerId }),
   clearSelection: () => set({ selectedCard: null, selectedTarget: null }),
 
+  // Called when human picks cards from their discard pile to recycle
+  resolveRecyclePick: (cardInstanceIds) => {
+    const { players, currentPlayerIndex } = get();
+    const updatedPlayers = players.map((p, i) => {
+      if (i === currentPlayerIndex && p.isHuman) {
+        const picked = p.discardPile.filter(c => cardInstanceIds.includes(c.instanceId));
+        const newDiscard = p.discardPile.filter(c => !cardInstanceIds.includes(c.instanceId));
+        const newHand = [...p.hand, ...picked].slice(0, 5);
+        return { ...p, hand: newHand, discardPile: newDiscard };
+      }
+      return p;
+    });
+    set({ players: updatedPlayers, pendingSpecialAction: null });
+  },
+
+  cancelSpecialAction: () => set({ pendingSpecialAction: null }),
+
   restartGame: () => set({
     selectedLeaderId: null,
     gamePhase: 'team_select',
@@ -366,6 +410,7 @@ export const useGameStore = create((set, get) => ({
     gameLog: [],
     selectedCard: null,
     selectedTarget: null,
+    pendingSpecialAction: null,
   }),
 
   forceEndGame: () => {

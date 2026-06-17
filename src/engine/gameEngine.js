@@ -276,6 +276,105 @@ export function applyCardEffect(card, sourcePlayer, targetPlayer, allPlayers) {
       }
       break;
 
+    // ── FORCE DISCARD ───────────────────────────────────────────
+    case 'force_discard': {
+      if (target && target.hand.length > 0) {
+        const count = Math.min(effect.count || 1, target.hand.length);
+        for (let i = 0; i < count; i++) {
+          const idx = Math.floor(Math.random() * target.hand.length);
+          const discarded = target.hand.splice(idx, 1)[0];
+          target.discardPile.push(discarded);
+        }
+      }
+      break;
+    }
+
+    case 'force_discard_all': {
+      const count = effect.count || 1;
+      updatedPlayers.forEach(p => {
+        if (p.id !== source.id && !p.isEliminated && p.hand.length > 0) {
+          const toDiscard = Math.min(count, p.hand.length);
+          for (let i = 0; i < toDiscard; i++) {
+            const idx = Math.floor(Math.random() * p.hand.length);
+            const discarded = p.hand.splice(idx, 1)[0];
+            p.discardPile.push(discarded);
+          }
+        }
+      });
+      break;
+    }
+
+    // ── RECYCLE ─────────────────────────────────────────────────
+    case 'recycle_pick': {
+      // For bots: auto-pick highest-cost cards from own discard pile
+      // For humans: store intercepts this before calling applyCardEffect
+      if (source.discardPile.length > 0) {
+        const count = Math.min(effect.count || 1, source.discardPile.length);
+        const sorted = [...source.discardPile].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const picked = sorted.slice(0, count);
+        picked.forEach(c => {
+          source.discardPile = source.discardPile.filter(d => d.instanceId !== c.instanceId);
+          if (source.hand.length < 5) source.hand.push(c);
+        });
+      }
+      break;
+    }
+
+    case 'recycle_all_to_deck': {
+      if (source.discardPile.length > 0) {
+        const recycled = [...source.discardPile];
+        source.discardPile = [];
+        // Shuffle and prepend to deck
+        for (let i = recycled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
+        }
+        source.deck = [...recycled, ...source.deck];
+      }
+      break;
+    }
+
+    // ── STEAL / COPY OPPONENT ────────────────────────────────────
+    case 'steal_from_hand': {
+      if (target && target.hand.length > 0) {
+        const idx = Math.floor(Math.random() * target.hand.length);
+        const stolen = target.hand.splice(idx, 1)[0];
+        if (source.hand.length < 5) {
+          source.hand.push(stolen);
+        } else {
+          source.discardPile.push(stolen);
+        }
+      }
+      break;
+    }
+
+    case 'copy_last_played': {
+      const lastCard = target ? target.lastPlayedCard : null;
+      if (lastCard && lastCard.effect) {
+        // Recursively apply the copied card's effect (source plays it on self or target)
+        const copyTarget = ['attack', 'mandate_siphon'].includes(lastCard.type) ? null : source;
+        applyCardEffect(lastCard, source, copyTarget, updatedPlayers);
+      } else {
+        // Fallback if no last card exists
+        source.mandates += 2;
+        source.leveragePower = Math.min(100, source.leveragePower + 5);
+      }
+      break;
+    }
+
+    case 'use_target_discard': {
+      if (target && target.discardPile.length > 0) {
+        const sorted = [...target.discardPile].sort((a, b) => (b.cost || 0) - (a.cost || 0));
+        const bestCard = sorted[0];
+        if (bestCard && bestCard.effect) {
+          applyCardEffect(bestCard, source, source, updatedPlayers);
+        }
+      } else {
+        source.mandates += 1;
+      }
+      break;
+    }
+
     default:
       // Unknown effect, apply small gain
       source.mandates += 1;

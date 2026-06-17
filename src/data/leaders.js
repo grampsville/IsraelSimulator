@@ -2,6 +2,7 @@ export const leaders = [
   {
     id: 'netanyahu',
     name: 'בנימין נתניהו',
+    nickname: 'ביבי',
     nameEn: 'Benjamin Netanyahu',
     party: 'הליכוד',
     partyEn: 'Likud',
@@ -21,6 +22,7 @@ export const leaders = [
   {
     id: 'bengvir',
     name: 'איתמר בן גביר',
+    nickname: 'בן גביר',
     nameEn: 'Itamar Ben Gvir',
     party: 'עוצמה יהודית',
     partyEn: 'Otzma Yehudit',
@@ -40,6 +42,7 @@ export const leaders = [
   {
     id: 'smotrich',
     name: 'בצלאל סמוטריץ׳',
+    nickname: 'סמוטריץ׳',
     nameEn: 'Bezalel Smotrich',
     party: 'הציונות הדתית',
     partyEn: 'Religious Zionism',
@@ -59,6 +62,7 @@ export const leaders = [
   {
     id: 'lapid',
     name: 'יאיר לפיד',
+    nickname: 'לפיד',
     nameEn: 'Yair Lapid',
     party: 'יש עתיד',
     partyEn: 'Yesh Atid',
@@ -78,6 +82,7 @@ export const leaders = [
   {
     id: 'golan',
     name: 'יאיר גולן',
+    nickname: 'גולן',
     nameEn: 'Yair Golan',
     party: 'הדמוקרטים',
     partyEn: 'HaDemocratim',
@@ -97,6 +102,7 @@ export const leaders = [
   {
     id: 'lieberman',
     name: 'אביגדור ליברמן',
+    nickname: 'ליברמן',
     nameEn: 'Avigdor Lieberman',
     party: 'ישראל ביתנו',
     partyEn: 'Yisrael Beiteinu',
@@ -116,6 +122,7 @@ export const leaders = [
   {
     id: 'deri',
     name: 'אריה דרעי',
+    nickname: 'דרעי',
     nameEn: 'Aryeh Deri',
     party: 'ש"ס',
     partyEn: 'Shas',
@@ -135,6 +142,7 @@ export const leaders = [
   {
     id: 'goldknopf',
     name: 'יצחק גולדקנופף',
+    nickname: 'גולדקנופף',
     nameEn: 'Yitzhak Goldknopf',
     party: 'יהדות התורה',
     partyEn: 'UTJ',
@@ -154,6 +162,7 @@ export const leaders = [
   {
     id: 'eisenkot',
     name: 'גדי איזנקוט',
+    nickname: 'אייזנקוט',
     nameEn: 'Gadi Eisenkot',
     party: 'מחנה ממלכתי',
     partyEn: 'Machane Mamlachti',
@@ -173,6 +182,7 @@ export const leaders = [
   {
     id: 'abbas',
     name: 'מנסור עבאס',
+    nickname: 'עבאס',
     nameEn: 'Mansour Abbas',
     party: 'רע"ם',
     partyEn: 'Raam',

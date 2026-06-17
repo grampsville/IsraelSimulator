@@ -11,28 +11,36 @@ export default function CardHand({ player, onSelectCard, selectedCardId }) {
   if (!player || !player.hand) return null;
 
   const handleCardClick = (card) => {
-    if (card.cost > actionPoints) {
-      // Show detail view but can't play
-      setDetailCard(card);
-      return;
-    }
     if (onSelectCard) {
       onSelectCard(card.instanceId === selectedCardId ? null : card.instanceId);
     }
   };
 
+  const handleCardInfo = (card) => {
+    setDetailCard(detailCard?.instanceId === card.instanceId ? null : card);
+  };
+
   return (
     <div className="relative">
-      {/* Detail popup */}
+      {/* Detail popup — fixed overlay */}
       <AnimatePresence>
         {detailCard && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.75)' }}
+            onClick={() => setDetailCard(null)}
           >
-            <CardDetail card={detailCard} onClose={() => setDetailCard(null)} />
+            <motion.div
+              initial={{ scale: 0.85, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.85, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <CardDetail card={detailCard} onClose={() => setDetailCard(null)} />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -64,12 +72,15 @@ export default function CardHand({ player, onSelectCard, selectedCardId }) {
                       card={card}
                       isSelected={isSelected}
                       onClick={() => handleCardClick(card)}
+                      onInfo={() => handleCardInfo(card)}
                     />
                     {cantAfford && (
-                      <div className="absolute inset-0 rounded-xl flex items-center justify-center"
-                        style={{ background: 'rgba(0,0,0,0.6)' }}>
+                      <div
+                        className="absolute inset-0 rounded-xl flex items-end justify-center pb-8 pointer-events-none"
+                        style={{ background: 'rgba(0,0,0,0.55)' }}
+                      >
                         <span className="text-red-400 text-xs font-bold text-center px-1">
-                          עלות: {card.cost} AP
+                          חסר AP
                         </span>
                       </div>
                     )}
