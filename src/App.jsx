@@ -4,6 +4,8 @@ import { useGameStore } from './store/gameStore.js';
 import TeamSelectScreen from './components/TeamSelect/TeamSelectScreen.jsx';
 import GameBoard from './components/GameBoard/GameBoard.jsx';
 import Button from './components/UI/Button.jsx';
+import HomeScreen from './components/Home/HomeScreen.jsx';
+import LevelsGame from './components/LevelsGame/LevelsGame.jsx';
 
 // Coalition negotiation overlay
 function CoalitionScreen() {
@@ -169,10 +171,18 @@ function EndScreen() {
 
 export default function App() {
   const gamePhase = useGameStore(s => s.gamePhase);
+  const startCardGame = useGameStore(s => s.startCardGame);
+  const startLevelsGame = useGameStore(s => s.startLevelsGame);
 
   return (
     <div className="min-h-screen bg-game-bg" dir="rtl">
       <AnimatePresence mode="wait">
+        {gamePhase === 'home' && (
+          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <HomeScreen onCardGame={startCardGame} onLevelsGame={startLevelsGame} />
+          </motion.div>
+        )}
+
         {gamePhase === 'team_select' && (
           <motion.div key="team_select" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <TeamSelectScreen />
@@ -189,6 +199,12 @@ export default function App() {
         {gamePhase === 'end' && (
           <motion.div key="end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <EndScreen />
+          </motion.div>
+        )}
+
+        {gamePhase === 'levels_game' && (
+          <motion.div key="levels_game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LevelsGame />
           </motion.div>
         )}
       </AnimatePresence>
