@@ -50,7 +50,7 @@ const drawCards = (player, count = 1) => {
 export const useGameStore = create((set, get) => ({
   // Setup
   selectedLeaderId: null,
-  gamePhase: 'team_select',
+  gamePhase: 'home',
 
   // Game state
   players: [],
@@ -394,9 +394,13 @@ export const useGameStore = create((set, get) => ({
 
   cancelSpecialAction: () => set({ pendingSpecialAction: null }),
 
+  startCardGame: () => set({ gamePhase: 'team_select', selectedLeaderId: null }),
+
+  startLevelsGame: () => set({ gamePhase: 'levels_game' }),
+
   restartGame: () => set({
     selectedLeaderId: null,
-    gamePhase: 'team_select',
+    gamePhase: 'home',
     players: [],
     currentPlayerIndex: 0,
     round: 1,
