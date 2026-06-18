@@ -10,6 +10,7 @@ import ThresholdWarning from '../UI/ThresholdWarning.jsx';
 import Button from '../UI/Button.jsx';
 import Modal from '../UI/Modal.jsx';
 import DiscardPicker from './DiscardPicker.jsx';
+import CardDetail from '../Cards/CardDetail.jsx';
 
 const HELP_SECTIONS = [
   {
@@ -50,6 +51,7 @@ export default function GameBoard() {
   const [showLog, setShowLog] = useState(false);
   const [showTargetSelect, setShowTargetSelect] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [actionBarDetail, setActionBarDetail] = useState(false);
 
   const humanPlayer = players.find(p => p.isHuman);
   const botPlayers = players.filter(p => !p.isHuman);
@@ -254,18 +256,24 @@ export default function GameBoard() {
             className="px-3 py-2 flex items-center justify-between"
             style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.6)' }}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{selectedCardData.emoji}</span>
-              <div>
-                <div className="text-sm font-bold text-white">{selectedCardData.name}</div>
-                <div className="text-xs text-gray-400">
+            <div
+              className="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
+              onClick={() => setActionBarDetail(true)}
+            >
+              <span className="text-2xl flex-shrink-0">{selectedCardData.emoji}</span>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-white flex items-center gap-1">
+                  {selectedCardData.name}
+                  <span className="text-xs text-gray-500 font-normal">ℹ️</span>
+                </div>
+                <div className="text-xs text-gray-400 truncate">
                   {showTargetSelect && !selectedTarget
                     ? '⚠️ נדרש יעד'
                     : selectedCardData.description.slice(0, 35) + '…'}
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <Button onClick={clearSelection} variant="ghost" size="sm">ביטול</Button>
               <Button
                 onClick={handlePlayCard}
@@ -276,6 +284,29 @@ export default function GameBoard() {
                 שחק
               </Button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Card detail overlay from action bar */}
+      <AnimatePresence>
+        {actionBarDetail && selectedCardData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center p-6 z-50"
+            style={{ background: 'rgba(0,0,0,0.8)' }}
+            onClick={() => setActionBarDetail(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.85 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <CardDetail card={selectedCardData} onClose={() => setActionBarDetail(false)} />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

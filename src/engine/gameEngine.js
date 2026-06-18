@@ -1,6 +1,57 @@
 import { cards } from '../data/cards.js';
 import { leaders } from '../data/leaders.js';
 
+// ── Political Reality ────────────────────────────────────────────────────────
+// Which blocs can form a coalition together (default compatibility)
+const BLOC_COMPAT = {
+  right:   ['right', 'haredi'],
+  haredi:  ['right', 'haredi', 'center'],
+  center:  ['center', 'left', 'arab', 'haredi'],
+  left:    ['left', 'center', 'arab'],
+  arab:    ['left', 'center'],
+};
+
+// Hard-coded pairs that can NEVER coalition regardless of bloc (current political reality)
+const NEVER_COALITION_PAIRS = [
+  ['lapid',     'netanyahu'],
+  ['lapid',     'bengvir'],
+  ['lapid',     'smotrich'],
+  ['lapid',     'deri'],
+  ['lapid',     'goldknopf'],
+  ['golan',     'netanyahu'],
+  ['golan',     'bengvir'],
+  ['golan',     'smotrich'],
+  ['golan',     'deri'],
+  ['golan',     'goldknopf'],
+  ['lieberman', 'deri'],
+  ['lieberman', 'goldknopf'],
+  ['lieberman', 'bengvir'],
+  ['lieberman', 'smotrich'],
+  ['eisenkot',  'bengvir'],
+  ['eisenkot',  'smotrich'],
+];
+
+export function canFormCoalition(player1, player2, allowCrossBloc = false) {
+  if (!player1 || !player2 || player1.id === player2.id) return false;
+  if (player1.isEliminated || player2.isEliminated) return false;
+
+  const id1 = player1.id || player1.leader?.id;
+  const id2 = player2.id || player2.leader?.id;
+
+  // Check hard NEVER pairs
+  for (const [a, b] of NEVER_COALITION_PAIRS) {
+    if ((id1 === a && id2 === b) || (id1 === b && id2 === a)) return false;
+  }
+
+  if (allowCrossBloc) return true;
+
+  // Check bloc compatibility
+  const bloc1 = player1.leader?.bloc || player1.bloc;
+  const bloc2 = player2.leader?.bloc || player2.bloc;
+  const compatible = BLOC_COMPAT[bloc1] || [];
+  return compatible.includes(bloc2);
+}
+
 // Build a 20-card deck for a leader based on archetype
 export function buildDeck(leaderId) {
   const leader = leaders.find(l => l.id === leaderId);
@@ -173,7 +224,7 @@ export function applyCardEffect(card, sourcePlayer, targetPlayer, allPlayers) {
     }
 
     case 'coalition_offer':
-      if (target && !source.coalitionAllies.includes(target.id)) {
+      if (target && !source.coalitionAllies.includes(target.id) && canFormCoalition(source, target)) {
         source.coalitionAllies.push(target.id);
         if (!target.coalitionAllies.includes(source.id)) {
           target.coalitionAllies.push(source.id);
@@ -182,7 +233,7 @@ export function applyCardEffect(card, sourcePlayer, targetPlayer, allPlayers) {
       break;
 
     case 'form_alliance':
-      if (target && !source.coalitionAllies.includes(target.id)) {
+      if (target && !source.coalitionAllies.includes(target.id) && canFormCoalition(source, target)) {
         source.coalitionAllies.push(target.id);
         if (!target.coalitionAllies.includes(source.id)) {
           target.coalitionAllies.push(source.id);
@@ -200,9 +251,11 @@ export function applyCardEffect(card, sourcePlayer, targetPlayer, allPlayers) {
       break;
 
     case 'cross_bloc_coalition':
+      // Cross-bloc cards explicitly bypass political compatibility
       if (target) {
-        if (!source.coalitionAllies.includes(target.id)) {
+        if (!source.coalitionAllies.includes(target.id) && canFormCoalition(source, target, true)) {
           source.coalitionAllies.push(target.id);
+          if (!target.coalitionAllies.includes(source.id)) target.coalitionAllies.push(source.id);
         }
         source.leveragePower = Math.min(100, source.leveragePower + (effect.leverage || 8));
       }
@@ -210,8 +263,9 @@ export function applyCardEffect(card, sourcePlayer, targetPlayer, allPlayers) {
 
     case 'instant_cross_bloc':
       if (target) {
-        if (!source.coalitionAllies.includes(target.id)) {
+        if (!source.coalitionAllies.includes(target.id) && canFormCoalition(source, target, true)) {
           source.coalitionAllies.push(target.id);
+          if (!target.coalitionAllies.includes(source.id)) target.coalitionAllies.push(source.id);
         }
         source.leveragePower = Math.min(100, source.leveragePower + (effect.leverage || 10));
       }
@@ -392,16 +446,34 @@ export function checkThresholds(players) {
     .map(p => p.id);
 }
 
-// Check if any player can form a 61-mandate coalition
+// Check if any player can form a valid 61-mandate coalition
 export function checkCoalitionPossible(players) {
   const activePlayers = players.filter(p => !p.isEliminated);
 
   for (const player of activePlayers) {
     const allyIds = [player.id, ...(player.coalitionAllies || [])];
-    const totalMandates = activePlayers
-      .filter(p => allyIds.includes(p.id))
-      .reduce((sum, p) => sum + p.mandates, 0);
+    const coalitionMembers = activePlayers.filter(p => allyIds.includes(p.id));
 
+    // Validate all pairs in the coalition are politically compatible
+    let isValid = true;
+    for (let i = 0; i < coalitionMembers.length && isValid; i++) {
+      for (let j = i + 1; j < coalitionMembers.length && isValid; j++) {
+        if (!canFormCoalition(coalitionMembers[i], coalitionMembers[j], false)) {
+          // Check if a cross-bloc card was used (allies list contains them) — allow it
+          // For now, if they're in each other's ally list it was done via a valid card
+          const p1allies = coalitionMembers[i].coalitionAllies || [];
+          const p2allies = coalitionMembers[j].coalitionAllies || [];
+          // Only invalidate if they are NOT in each other's ally lists
+          if (!p1allies.includes(coalitionMembers[j].id) || !p2allies.includes(coalitionMembers[i].id)) {
+            isValid = false;
+          }
+        }
+      }
+    }
+
+    if (!isValid) continue;
+
+    const totalMandates = coalitionMembers.reduce((sum, p) => sum + p.mandates, 0);
     if (totalMandates >= 61) {
       return { possible: true, leaderId: player.id, totalMandates };
     }
